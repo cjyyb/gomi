@@ -99,8 +99,20 @@ func (r *Router) Route() iType.Middle {
 func (r *Router) search(ctx *iType.Ctx) iType.BindMiddle {
 	req := ctx.Req
 	path := req.URL.Path
-	method := req.Method
-	return findHandlerByMethodAndPath(r.route, method, path)
+	prefix := r.prefix
+	preLength := len(prefix)
+	pathLength := len(path)
+	if prefix == "" {
+		return findHandlerByMethodAndPath(r.route, req.Method, path)
+	}
+	if pathLength < preLength {
+		return nil
+	}
+	l := 0
+	for ; l < preLength && prefix[l] == path[l]; l++ {
+	}
+	return findHandlerByMethodAndPath(r.route, req.Method, path[l:])
+
 }
 
 func findHandlerByMethodAndPath(r *route, method, path string) iType.BindMiddle {

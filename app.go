@@ -27,7 +27,9 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		//do your self err handle
 		err := recover()
-		glog.Errorf("main process catch error, err: %v", err)
+		if err != nil {
+			glog.Errorf("main process catch error, err: %v", err)
+		}
 	}()
 	defer iType.Destroy(ctx)
 	passage(ctx)

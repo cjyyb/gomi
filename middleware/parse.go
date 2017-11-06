@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	"gomi/iType"
-	"gomi/router"
+	"gomi/route"
 
 	"github.com/golang/glog"
 )
