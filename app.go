@@ -25,6 +25,8 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := iType.CtxPool.Get().(*iType.Ctx)
 	defer iType.CtxPool.Put(ctx)
+	ctx.Req = r
+	ctx.Res = w
 	passage(ctx)
 }
 

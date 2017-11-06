@@ -2,13 +2,42 @@ package iType
 
 import (
 	"net/http"
+	"net/url"
+	"strconv"
 	"sync"
 )
 
 //Ctx ...
 type Ctx struct {
-	Res *http.ResponseWriter
-	Req *http.Request
+	Res   http.ResponseWriter
+	Req   *http.Request
+	query url.Values
+}
+
+//QueryString ...
+func (c *Ctx) QueryString(name string) string {
+	return c.Req.URL.RawQuery
+}
+
+//QueryStringValue ...
+func (c *Ctx) QueryStringValue(name string) string {
+	if c.query == nil {
+		c.query = c.Req.URL.Query()
+	}
+	return c.query.Get(name)
+}
+
+//QueryIntValue ...
+func (c *Ctx) QueryIntValue(name string) (int, error) {
+	if c.query == nil {
+		c.query = c.Req.URL.Query()
+	}
+	value := c.query.Get(name)
+	if value == "" {
+		return 0, nil
+	}
+	iv, err := strconv.Atoi(value)
+	return iv, err
 }
 
 //CtxPool ...
@@ -29,7 +58,7 @@ type ExtendMiddleSlice []Middle
 
 //CombineMiddle ...
 func CombineMiddle(m ExtendMiddleSlice) BindMiddle {
-	return m.Combine(func(next BindMiddle, previous Middle) BindMiddle {
+	return m.combine(func(next BindMiddle, previous Middle) BindMiddle {
 		return func(ctx *Ctx) {
 			previous(ctx, next)
 		}
@@ -37,7 +66,7 @@ func CombineMiddle(m ExtendMiddleSlice) BindMiddle {
 }
 
 //Combine ...
-func (e ExtendMiddleSlice) Combine(callback func(BindMiddle, Middle) BindMiddle) BindMiddle {
+func (e ExtendMiddleSlice) combine(callback func(BindMiddle, Middle) BindMiddle) BindMiddle {
 	length := len(e)
 	if length == 0 {
 		return func(ctx *Ctx) {
