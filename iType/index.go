@@ -69,6 +69,11 @@ func New(req *http.Request, res http.ResponseWriter) *Ctx {
 	return ctx
 }
 
+//Destroy ...
+func Destroy(ctx *Ctx) {
+	ctxPool.Put(ctx)
+}
+
 //Middle ...
 type Middle func(*Ctx, BindMiddle) error
 

@@ -24,6 +24,12 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		passage = iType.CombineMiddle(overall)
 	}
 	ctx := iType.New(r, w)
+	defer func() {
+		//do your self err handle
+		err := recover()
+		glog.Errorf("main process catch error, err: %v", err)
+	}()
+	defer iType.Destroy(ctx)
 	passage(ctx)
 }
 
