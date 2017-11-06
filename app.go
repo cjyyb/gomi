@@ -23,10 +23,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if len(overall) != 0 {
 		passage = iType.CombineMiddle(overall)
 	}
-	ctx := iType.CtxPool.Get().(*iType.Ctx)
-	defer iType.CtxPool.Put(ctx)
-	ctx.Req = r
-	ctx.Res = w
+	ctx := iType.New(r, w)
 	passage(ctx)
 }
 

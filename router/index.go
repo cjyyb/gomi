@@ -4,10 +4,17 @@ import (
 	"gomi/iType"
 )
 
-const (
-	POST   = "POST"
-	PUT    = "PUT"
-	GET    = "GET"
+var (
+	//POST ...
+	POST = "POST"
+
+	//PUT ...
+	PUT = "PUT"
+
+	//GET ...
+	GET = "GET"
+
+	//DELETE ...
 	DELETE = "DELETE"
 )
 
@@ -76,15 +83,16 @@ func (r *Router) Delete(path string, handler ...iType.Middle) {
 
 //Route ...
 func (r *Router) Route() iType.Middle {
-	return func(ctx *iType.Ctx, bind iType.BindMiddle) {
+	return func(ctx *iType.Ctx, bind iType.BindMiddle) error {
 		handler := r.search(ctx)
 		if handler == nil {
-			bind(ctx)
-			return
+			return bind(ctx)
 		}
-		handler(ctx)
-		bind(ctx)
-		return
+		err := handler(ctx)
+		if err != nil {
+			return err
+		}
+		return bind(ctx)
 	}
 }
 
@@ -125,7 +133,7 @@ func findHandlerByMethodAndPath(r *route, method, path string) iType.BindMiddle 
 
 func (r *route) add(method, path string, handler ...iType.Middle) {
 	if len(handler) == 0 {
-		handler = append(handler, func(ctx *iType.Ctx, b iType.BindMiddle) {})
+		handler = append(handler, func(ctx *iType.Ctx, b iType.BindMiddle) error { return nil })
 	}
 	handler = append(r.root.middle, handler...)
 	middle := iType.ExtendMiddleSlice(handler)

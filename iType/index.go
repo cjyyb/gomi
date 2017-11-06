@@ -11,28 +11,40 @@ import (
 type Ctx struct {
 	Res   http.ResponseWriter
 	Req   *http.Request
-	query url.Values
+	Input *Input
+}
+
+//Input ...
+type Input struct {
+	RequestBody []byte
+	Ctx         *Ctx
+	query       url.Values
 }
 
 //QueryString ...
-func (c *Ctx) QueryString(name string) string {
-	return c.Req.URL.RawQuery
+func (i *Input) QueryString() string {
+	return i.Ctx.Req.URL.RawQuery
 }
 
 //QueryStringValue ...
-func (c *Ctx) QueryStringValue(name string) string {
-	if c.query == nil {
-		c.query = c.Req.URL.Query()
+func (i *Input) QueryStringValue(name string) string {
+	if i.query == nil {
+		i.query = i.Ctx.Req.URL.Query()
 	}
-	return c.query.Get(name)
+	return i.query.Get(name)
+}
+
+//FormValue ...
+func (i *Input) FormValue(name string) string {
+	return i.Ctx.Req.FormValue(name)
 }
 
 //QueryIntValue ...
-func (c *Ctx) QueryIntValue(name string) (int, error) {
-	if c.query == nil {
-		c.query = c.Req.URL.Query()
+func (i *Input) QueryIntValue(name string) (int, error) {
+	if i.query == nil {
+		i.query = i.Ctx.Req.URL.Query()
 	}
-	value := c.query.Get(name)
+	value := i.query.Get(name)
 	if value == "" {
 		return 0, nil
 	}
@@ -41,17 +53,27 @@ func (c *Ctx) QueryIntValue(name string) (int, error) {
 }
 
 //CtxPool ...
-var CtxPool = sync.Pool{
+var ctxPool = sync.Pool{
 	New: func() interface{} {
 		return new(Ctx)
 	},
 }
 
+//New ...
+func New(req *http.Request, res http.ResponseWriter) *Ctx {
+	ctx := ctxPool.Get().(*Ctx)
+	ctx.Res = res
+	ctx.Req = req
+	ctx.Input = new(Input)
+	ctx.Input.Ctx = ctx
+	return ctx
+}
+
 //Middle ...
-type Middle func(*Ctx, BindMiddle)
+type Middle func(*Ctx, BindMiddle) error
 
 //BindMiddle ...
-type BindMiddle func(*Ctx)
+type BindMiddle func(*Ctx) error
 
 //ExtendMiddleSlice ...
 type ExtendMiddleSlice []Middle
@@ -59,8 +81,8 @@ type ExtendMiddleSlice []Middle
 //CombineMiddle ...
 func CombineMiddle(m ExtendMiddleSlice) BindMiddle {
 	return m.combine(func(next BindMiddle, previous Middle) BindMiddle {
-		return func(ctx *Ctx) {
-			previous(ctx, next)
+		return func(ctx *Ctx) error {
+			return previous(ctx, next)
 		}
 	})
 }
@@ -69,12 +91,15 @@ func CombineMiddle(m ExtendMiddleSlice) BindMiddle {
 func (e ExtendMiddleSlice) combine(callback func(BindMiddle, Middle) BindMiddle) BindMiddle {
 	length := len(e)
 	if length == 0 {
-		return func(ctx *Ctx) {
+		return func(ctx *Ctx) error {
+			return nil
 		}
 	}
 
-	last := func(ctx *Ctx) {
-		e[length-1](ctx, func(ctx *Ctx) {})
+	last := func(ctx *Ctx) error {
+		return e[length-1](ctx, func(ctx *Ctx) error {
+			return nil
+		})
 	}
 
 	if length == 1 {
