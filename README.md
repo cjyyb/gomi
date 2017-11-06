@@ -6,6 +6,7 @@ import(
 	"gomi/iType"
 	"gomi/route"
 	"gomi/middleware"
+	"encoding/json"
 )
 
 func main() {
@@ -14,6 +15,7 @@ func main() {
 		fmt.Println("hello, this is global middle")
 		return next(ctx)
 	})
+
 
 	//support prefix,if not use, please use ""
 	router := route.New("/api/v2")
@@ -31,6 +33,13 @@ func main() {
 		fmt.Println(ctx.Req.Header.Get("Content-Type"))
 		fmt.Println(ctx.Input.FormValue("a"))
 		fmt.Println(ctx.Input.QueryStringValue("c"))
+		testJSON := struct{
+			a string `json:"a"`
+		}{}
+
+		json.Unmarshal(ctx.Input.RequestBody, &testJSON)
+		fmt.Printf("json %v", testJSON)
+
 		ctx.Res.Write([]byte("hellopost"))
 		return nil
 	})
@@ -56,13 +65,3 @@ func main() {
 	app.Use(router2.Route())
 	app.Run(":7890")
 }
-
-
-/*
-
-支持get put delete post
-不支持参数化url
-
-only supprot get,put,delete and post method
-not support url params
-*/
