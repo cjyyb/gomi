@@ -65,3 +65,11 @@ func main() {
 	app.Use(router2.Route())
 	app.Run(":7890")
 }
+/*
+
+支持get put delete post
+不支持参数化url
+
+only supprot get,put,delete and post method
+not support url params
+*/
