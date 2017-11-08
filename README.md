@@ -118,11 +118,11 @@ func main() {
 ```
 #### 4） 中间件
 
-支持三种级别的中间件：1.全局中间件。 2.路由组中间件 3.路由中间件，即路由支持多个处理函数
-中间件和处理函数是同一类型，第一个参数ctx代表着传递的上下文，包含着 http.request 和 http.ResponseWriter
-而第二个参数next代表这下一个处理函数，如果希望将控制权交给下一个函数，则调用next(ctx)
-基本流程为 全局中间件 -> 路由组中间件 -> 路由处理函数 -> 全局中间件
-中间件及其灵活，根据所处位置不同，触发时机不通，基本可以根据Use顺序进行
+支持三种级别的中间件：1.全局中间件。 2.路由组中间件 3.路由中间件，即路由支持多个处理函数   
+中间件和处理函数是同一类型，第一个参数ctx代表着传递的上下文，包含着 http.request 和 http.ResponseWriter   
+而第二个参数next代表这下一个处理函数，如果希望将控制权交给下一个函数，则调用next(ctx)   
+基本流程为 全局中间件 -> 路由组中间件 -> 路由处理函数 -> 全局中间件   
+中间件较灵活，根据所处位置不同，触发时机不通，基本可以根据Use顺序进行
 
 ```go
 import(
@@ -201,49 +201,3 @@ func main() {
 	})
 	app.Run(":7890")
 ```
-
-
-
-
-
-
-
-
-	router.Get("/a/:id", func(ctx *iType.Ctx, next iType.BindMiddle) error {
-    		ctx.Res.Write([]byte(ctx.GetPathStringParam("id")))
-    		return nil
-    })
-    router.Get("/a/:id/c/:t", func(ctx *iType.Ctx, next iType.BindMiddle) error {
-    		ctx.Res.Write([]byte(ctx.GetPathStringParam("id")))
-    		ctx.Res.Write([]byte(ctx.GetPathStringParam("t")))
-    		return nil
-    })
-
-	router.Put("/a", func(ctx *iType.Ctx, next iType.BindMiddle)error {
-		ctx.Res.Write([]byte("helloput"))
-		return nil
-	})
-	router.Delete("/a", func(ctx *iType.Ctx, next iType.BindMiddle)error {
-		ctx.Res.Write([]byte("hellodelete"))
-		return nil
-	})
-
-	//router2
-	router2 := route.New("/api/v3")
-
-	//router2 middle
-	router2.Use(middleware.Parse)
-	router2.Get("/a", func(ctx *iType.Ctx, next iType.BindMiddle)error {
-		ctx.Res.Write([]byte("hellov3"))
-		return nil
-	})
-
-}
-/*
-
-支持get put delete post
-不支持参数化url
-
-only supprot get,put,delete and post method
-not support url params
-*/
