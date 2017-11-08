@@ -16,8 +16,8 @@ type Ctx struct {
 }
 
 //GetStringParams ...
-func (c *Ctx) GetURLStringParams(name string) string {
-	return c.URL.GetURLStringParams(name)
+func (c *Ctx) GetPathStringParams(name string) string {
+	return c.URL.GetPathStringParams(name)
 }
 
 //URL ...
@@ -26,7 +26,7 @@ type URL struct {
 }
 
 //GetStringParams ...
-func (u *URL) GetURLStringParams(name string) string {
+func (u *URL) GetPathStringParams(name string) string {
 	return u.Params[name]
 }
 

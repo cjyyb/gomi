@@ -1,9 +1,7 @@
 ## 持续更新中
 ### 路由支持路由组
 ### 目前支持全局中间件，路由组级别中间件，路由级别中间件
-## TODO
-### URL增加参数化支持
-package main
+
 
 import(
 	"fmt"
@@ -34,6 +32,15 @@ func main() {
 		ctx.Res.Write([]byte("hello"))
 		return nil
 	})
+	router.Get("/a/:id", func(ctx *iType.Ctx, next iType.BindMiddle) error {
+    		ctx.Res.Write([]byte(ctx.GetPathStringParams("id")))
+    		return nil
+    })
+    router.Get("/a/:id/c/:t", func(ctx *iType.Ctx, next iType.BindMiddle) error {
+    		ctx.Res.Write([]byte(ctx.GetPathStringParams("id")))
+    		ctx.Res.Write([]byte(ctx.GetPathStringParams("t")))
+    		return nil
+    })
 	router.Post("/b",func(ctx *iType.Ctx, next iType.BindMiddle)error {
 		fmt.Println(ctx.Req.Header.Get("Content-Type"))
 		fmt.Println(ctx.Input.FormValue("a"))
