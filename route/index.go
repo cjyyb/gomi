@@ -18,6 +18,13 @@ var (
 	DELETE = "DELETE"
 )
 
+type kind uint8
+
+const (
+	ukind uint8 = iota
+	pkind
+)
+
 //Router ...
 type Router struct {
 	prefix string
@@ -26,13 +33,15 @@ type Router struct {
 }
 
 type route struct {
-	label        byte
-	children     childrenRoute
-	parent       *route
-	prefix       string
-	regexMatcher string
-	handler      *handler
-	root         *Router
+	label     byte
+	children  childrenRoute
+	parent    *route
+	prefix    string
+	handler   *handler
+	root      *Router
+	urlParams []string
+	urlValue  []string
+	kind      uint8
 }
 
 type handler struct {
@@ -63,22 +72,22 @@ func (r *Router) Use(handler iType.Middle) {
 
 //Get ...
 func (r *Router) Get(path string, handler ...iType.Middle) {
-	r.route.add(GET, path, handler...)
+	r.route.process(GET, path, handler...)
 }
 
 //Post ...
 func (r *Router) Post(path string, handler ...iType.Middle) {
-	r.route.add(POST, path, handler...)
+	r.route.process(POST, path, handler...)
 }
 
 //Put ...
 func (r *Router) Put(path string, handler ...iType.Middle) {
-	r.route.add(PUT, path, handler...)
+	r.route.process(PUT, path, handler...)
 }
 
 //Delete ...
 func (r *Router) Delete(path string, handler ...iType.Middle) {
-	r.route.add(DELETE, path, handler...)
+	r.route.process(DELETE, path, handler...)
 }
 
 //Route ...
@@ -101,53 +110,132 @@ func (r *Router) search(ctx *iType.Ctx) iType.BindMiddle {
 	path := req.URL.Path
 	prefix := r.prefix
 	preLength := len(prefix)
-	pathLength := len(path)
 	if prefix == "" {
-		return findHandlerByMethodAndPath(r.route, req.Method, path)
-	}
-	if pathLength < preLength {
-		return nil
+		rr := findHandlerByMethodAndPath(r.route, req.Method, path)
+		if rr == nil {
+			return nil
+		}
+		ctx.URL.Params = params(rr.urlParams, rr.urlValue)
+		return rr.getHandlerByMethod(req.Method)
 	}
 	l := 0
 	for ; l < preLength && prefix[l] == path[l]; l++ {
 	}
-	return findHandlerByMethodAndPath(r.route, req.Method, path[l:])
-
+	if l != preLength {
+		return nil
+	}
+	rr := findHandlerByMethodAndPath(r.route, req.Method, path[l:])
+	if rr == nil {
+		return nil
+	}
+	ctx.URL.Params = params(rr.urlParams, rr.urlValue)
+	return rr.getHandlerByMethod(req.Method)
 }
 
-func findHandlerByMethodAndPath(r *route, method, path string) iType.BindMiddle {
+func params(urlParams, urlValue []string) map[string]string {
+	ptov := map[string]string{}
+	if len(urlParams) > 0 {
+		vLength := len(urlValue)
+		for i, value := range urlParams {
+			if i < vLength {
+				ptov[value] = urlValue[i]
+			}
+		}
+	}
+	return ptov
+}
+
+func findHandlerByMethodAndPath(r *route, method, path string) *route {
+	var (
+		pvalue        = []string{}
+		previousRoute *route
+	)
 	for {
 		if r == nil {
 			return nil
 		}
+		if path == "" {
+			goto End
+		}
 		l := 0
+		preLength := 0
 		prefix := r.prefix
-		pathLength := len(path)
-		preLength := len(prefix)
-		max := preLength
-		if max > pathLength {
-			max = pathLength
+		if r.label != ':' {
+			preLength = len(prefix)
+			pathLength := len(path)
+			max := preLength
+			if max > pathLength {
+				max = pathLength
+			}
+			for ; l < max && prefix[l] == path[l]; l++ {
+			}
 		}
-		for ; l < max && prefix[l] == path[l]; l++ {
+		if l == preLength {
+			path = path[l:]
+		} else {
+			r = previousRoute
+			goto Params
 		}
-		if path[l:] == "" {
-			return r.getHandlerByMethod(method)
+		if path == "" {
+			goto End
 		}
-		path = path[l:]
-		cr := findRouteByLabel(r, path[0])
-		if cr != nil {
+		if cr := findRouteByLabelAndKind(r, path[0], ukind); cr != nil {
+			previousRoute = r
+			r = cr
+			continue
+		}
+
+	Params:
+		if cr := findRouteByKind(r, pkind); cr != nil {
+			i, l := 0, len(path)
+			for ; i < l && path[i] != '/'; i++ {
+			}
+			pvalue = append(pvalue, path[:i])
+			path = path[i:]
 			r = cr
 			continue
 		}
 		return nil
+
 	}
+End:
+	r.urlValue = pvalue
+	return r
 }
 
-func (r *route) add(method, path string, handler ...iType.Middle) {
-	if len(handler) == 0 {
-		handler = append(handler, func(ctx *iType.Ctx, b iType.BindMiddle) error { return nil })
+func (r *route) process(method, path string, handler ...iType.Middle) {
+	if path[0] != '/' {
+		path = "/" + path
 	}
-	handler = append(r.root.middle, handler...)
+	if len(handler) == 0 {
+		handler = append(handler, func(ctx *iType.Ctx, next iType.BindMiddle) error {
+			return nil
+		})
+	}
+	pname := []string{}
+	for i, l := 0, len(path); i < l; i++ {
+		if path[i] == ':' {
+			j := i + 1
+			r.add(method, path[:i], ukind, nil)
+			for ; i < l && path[i] != '/'; i++ {
+			}
+			pname = append(pname, path[j:i])
+			path = path[:j] + path[i:]
+			i, l = j, len(path)
+			if i == l {
+				r.add(method, path, pkind, pname, handler...)
+				return
+			}
+			r.add(method, path[:i], pkind, pname)
+		}
+	}
+	r.add(method, path, ukind, pname, handler...)
+}
+
+func (r *route) add(method, path string, kind uint8, pname []string, handler ...iType.Middle) {
+	if len(handler) != 0 {
+		handler = append(r.root.middle, handler...)
+	}
 	middle := iType.ExtendMiddleSlice(handler)
 	for {
 		prefix := r.prefix
@@ -164,23 +252,27 @@ func (r *route) add(method, path string, handler ...iType.Middle) {
 			r.prefix = path
 			r.children = nil
 			r.label = path[0]
-			r.regexMatcher = path
+			r.kind = kind
+			r.urlParams = pname
 			r.addMethodHandler(method, middle)
 		} else if l < prefixLength {
 			newPrefix := path[0:l]
-			otn := convertToNew(r.prefix[l:], r.children, r.handler)
+			otn := convertToNew(r.prefix[l:], r.urlParams, kind, r.children, r.handler)
 			r.prefix = newPrefix
 			r.children = nil
 			r.handler = nil
 			r.addChildren(otn)
+			r.kind = kind
+			r.urlParams = pname
 			path = path[l:]
 			if l == pathLength {
 				r.addMethodHandler(method, middle)
 			} else {
 				newRoute := &route{
-					label:        path[0],
-					prefix:       path,
-					regexMatcher: path,
+					label:     path[0],
+					prefix:    path,
+					kind:      kind,
+					urlParams: pname,
 				}
 				newRoute.addMethodHandler(method, middle)
 				r.addChildren(newRoute)
@@ -193,9 +285,10 @@ func (r *route) add(method, path string, handler ...iType.Middle) {
 				continue
 			}
 			newRoute := &route{
-				label:        path[0],
-				prefix:       path,
-				regexMatcher: path,
+				label:     path[0],
+				prefix:    path,
+				kind:      kind,
+				urlParams: pname,
 			}
 			newRoute.addMethodHandler(method, middle)
 			r.addChildren(newRoute)
@@ -204,6 +297,15 @@ func (r *route) add(method, path string, handler ...iType.Middle) {
 		}
 		return
 	}
+}
+
+func findRouteByLabelAndKind(r *route, label byte, kind uint8) *route {
+	for i, value := range r.children {
+		if value.label == label && value.kind == kind {
+			return r.children[i]
+		}
+	}
+	return nil
 }
 
 func findRouteByLabel(r *route, label byte) *route {
@@ -215,16 +317,27 @@ func findRouteByLabel(r *route, label byte) *route {
 	return nil
 }
 
-func convertToNew(prefix string, children childrenRoute, h *handler) *route {
+func findRouteByKind(r *route, kind uint8) *route {
+	for _, value := range r.children {
+		if value.kind == kind {
+			return value
+		}
+	}
+
+	return nil
+}
+
+func convertToNew(prefix string, pname []string, kind uint8, children childrenRoute, h *handler) *route {
 	if h == nil {
 		h = new(handler)
 	}
 	router := route{
-		label:        prefix[0],
-		prefix:       prefix,
-		children:     children,
-		handler:      h,
-		regexMatcher: prefix,
+		label:     prefix[0],
+		prefix:    prefix,
+		children:  children,
+		urlParams: pname,
+		kind:      kind,
+		handler:   h,
 	}
 	return &router
 }
@@ -248,6 +361,9 @@ func (r *route) getHandlerByMethod(method string) iType.BindMiddle {
 }
 
 func (r *route) addMethodHandler(method string, m iType.ExtendMiddleSlice) {
+	if m == nil || len(m) == 0 {
+		return
+	}
 	bm := iType.CombineMiddle(m)
 	if r.handler == nil {
 		r.handler = new(handler)

@@ -11,7 +11,23 @@ import (
 type Ctx struct {
 	Res   http.ResponseWriter
 	Req   *http.Request
+	URL   URL
 	Input *Input
+}
+
+//GetStringParams ...
+func (c *Ctx) GetURLStringParams(name string) string {
+	return c.URL.GetURLStringParams(name)
+}
+
+//URL ...
+type URL struct {
+	Params map[string]string
+}
+
+//GetStringParams ...
+func (u *URL) GetURLStringParams(name string) string {
+	return u.Params[name]
 }
 
 //Input ...
@@ -69,8 +85,8 @@ func New(req *http.Request, res http.ResponseWriter) *Ctx {
 	return ctx
 }
 
-//Destroy ...
-func Destroy(ctx *Ctx) {
+//Release ...
+func Release(ctx *Ctx) {
 	ctxPool.Put(ctx)
 }
 

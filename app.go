@@ -31,7 +31,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			glog.Errorf("main process catch error, err: %v", err)
 		}
 	}()
-	defer iType.Destroy(ctx)
+	defer iType.Release(ctx)
 	passage(ctx)
 }
 
