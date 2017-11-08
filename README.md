@@ -1,11 +1,11 @@
 # gomi
 
-## 1.Install 
+## 1. Install 
 ```go
 go get -u github.com/UserNameSoMany/gomi
 ```
 
-## 2.2. Getting Started
+## 2. Getting Started
 
 ```go
 
@@ -35,19 +35,18 @@ func main() {
 	app.Run(":7890")
 ```
 
-## 3.Features
+## 3. Features
 * 支持全局中间件
 * 支持简单路由组
 * 支持路由组中间件
 * 支持静态路由和参数路由
 * 支持路由多处理函数
 
-## 4.Usage
+## 4. Usage
 #### 1) 常规静态路由
 路由属于各路由组，路由组可以设置前缀，如果路由组不需要前缀，则传入空字符串
 ```go
 import(
-	"fmt"
 	"github.com/gomi"
 	"github.com/gomi/iType"
 	"github.com/gomi/route"
@@ -122,7 +121,7 @@ func main() {
 中间件和处理函数是同一类型，第一个参数ctx代表着传递的上下文，包含着 http.request 和 http.ResponseWriter   
 而第二个参数next代表这下一个处理函数，如果希望将控制权交给下一个函数，则调用next(ctx)   
 基本流程为 全局中间件 -> 路由组中间件 -> 路由处理函数 -> 全局中间件   
-中间件较灵活，根据所处位置不同，触发时机不通，基本可以根据Use顺序进行
+中间件较灵活，根据所处位置不同，触发时机不同，基本可以根据Use顺序进行
 
 ```go
 import(
@@ -133,7 +132,7 @@ import(
 )
 func main() {
 	app := gomi.New()
-	//使用全局中间件，任何请求，无论是否匹配到路由，都会出发全局中间件
+	//使用全局中间件，任何请求，无论是否匹配到路由，都会触发全局中间件
 	app.Use(func(ctx *iType.Ctx, next iType.BindMiddle) error {
 		fmt.Println("hello, this is global middle")
 		return next(ctx)
@@ -165,7 +164,7 @@ func main() {
 	//将路由组挂载到应用上
 	app.Use(router.Route())
 	
-	//当前一个路由组没有匹配到或者转交了控制权后，触发此处中间件
+	//上一个路由组没有匹配到或者转交了控制权后，触发此处中间件
 	app.Use(func(ctx *iType.Ctx, next iType.BindMiddle) error {
 		if next != nil {
 			//将控制权转交给 /api/v3路由组
@@ -175,7 +174,7 @@ func main() {
 	})
 	//初始化另一路由组
 	router2 := route.New("/api/v3")
-	//路由支持多个处理，匹配 ／api/v2/a/a
+	//路由支持多个处理，匹配 ／api/v3/a/a
 	router.Get("/a/:id", func(ctx *iType.Ctx, next iType.BindMiddle) error {
 		//逻辑处理
 		
