@@ -1,7 +1,7 @@
 package route
 
 import (
-	"gomi/iType"
+	"github.com/gomi/iType"
 )
 
 var (

@@ -4,8 +4,8 @@ import (
 	"io"
 	"io/ioutil"
 
-	"gomi/iType"
-	"gomi/route"
+	"github.com/gomi/iType"
+	"github.com/gomi/route"
 
 	"github.com/golang/glog"
 )

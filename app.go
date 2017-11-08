@@ -1,9 +1,10 @@
 package gomi
 
 import (
-	"gomi/iType"
 	"net"
 	"net/http"
+
+	"github.com/gomi/iType"
 
 	"github.com/golang/glog"
 )
