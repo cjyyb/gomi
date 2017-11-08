@@ -33,12 +33,12 @@ func main() {
 		return nil
 	})
 	router.Get("/a/:id", func(ctx *iType.Ctx, next iType.BindMiddle) error {
-    		ctx.Res.Write([]byte(ctx.GetPathStringParams("id")))
+    		ctx.Res.Write([]byte(ctx.GetPathStringParam("id")))
     		return nil
     })
     router.Get("/a/:id/c/:t", func(ctx *iType.Ctx, next iType.BindMiddle) error {
-    		ctx.Res.Write([]byte(ctx.GetPathStringParams("id")))
-    		ctx.Res.Write([]byte(ctx.GetPathStringParams("t")))
+    		ctx.Res.Write([]byte(ctx.GetPathStringParam("id")))
+    		ctx.Res.Write([]byte(ctx.GetPathStringParam("t")))
     		return nil
     })
 	router.Post("/b",func(ctx *iType.Ctx, next iType.BindMiddle)error {
