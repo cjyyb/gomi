@@ -2,7 +2,6 @@
 
 ## 1. Install 
 ```go
-go get -u github.com/UserNameSoMany/gomi
 ```
 
 ## 2. Getting Started
