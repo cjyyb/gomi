@@ -16,18 +16,23 @@ var (
 )
 
 //Parse ...
-func Parse(ctx *iType.Ctx, next iType.BindMiddle) error {
-	req := ctx.Req
-	if req.Method == route.POST {
-		if isJSON(ctx) == true {
-			err := parseRequestBody(ctx.Input, ctx.Req.Body, DEFAULTMAXMEMORY)
-			if err != nil {
-				glog.Errorln("Parse request body failed, err: %v\n", err)
-				return err
+func Parse(maxMemory int64) iType.Middle {
+	if maxMemory == 0 {
+		maxMemory = DEFAULTMAXMEMORY
+	}
+	return func(ctx *iType.Ctx, next iType.BindMiddle) error {
+		req := ctx.Req
+		if req.Method == route.POST {
+			if isJSON(ctx) == true {
+				err := parseRequestBody(ctx.Input, ctx.Req.Body, maxMemory)
+				if err != nil {
+					glog.Errorln("Parse request body failed, err: %v\n", err)
+					return err
+				}
 			}
 		}
+		return next(ctx)
 	}
-	return next(ctx)
 }
 
 func parseRequestBody(i *iType.Input, reader io.Reader, maxMemory int64) error {
@@ -38,10 +43,6 @@ func parseRequestBody(i *iType.Input, reader io.Reader, maxMemory int64) error {
 		return err
 	}
 	i.RequestBody = data
-	if err != nil {
-		glog.Errorf("Close Request.Body failed, err: %v\n", err)
-		return err
-	}
 	return nil
 }
 

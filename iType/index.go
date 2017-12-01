@@ -7,15 +7,32 @@ import (
 	"sync"
 )
 
+const (
+	//HeaderVary ...
+	HeaderVary = "Vary"
+
+	//HeaderContentEncoding ...
+	HeaderContentEncoding = "Content-Encoding"
+
+	//HeaderAccpetEncoding ...
+	HeaderAccpetEncoding = "Accept-Encoding"
+
+	//HeaderContentLength ...
+	HeaderContentLength = "Content-Length"
+
+	//HeaderContentType ...
+	HeaderContentType = "Content-Type"
+)
+
 //Ctx ...
 type Ctx struct {
-	Res   http.ResponseWriter
+	Res   *Response
 	Req   *http.Request
 	URL   URL
 	Input *Input
 }
 
-//GetStringParams ...
+//GetPathStringParam ...
 func (c *Ctx) GetPathStringParam(name string) string {
 	return c.URL.GetPathStringParam(name)
 }
@@ -25,7 +42,7 @@ type URL struct {
 	Params map[string]string
 }
 
-//GetStringParams ...
+//GetPathStringParam ...
 func (u *URL) GetPathStringParam(name string) string {
 	return u.Params[name]
 }
@@ -78,7 +95,7 @@ var ctxPool = sync.Pool{
 //New ...
 func New(req *http.Request, res http.ResponseWriter) *Ctx {
 	ctx := ctxPool.Get().(*Ctx)
-	ctx.Res = res
+	ctx.Res = NewResponse(ctx, res)
 	ctx.Req = req
 	ctx.Input = new(Input)
 	ctx.Input.Ctx = ctx
